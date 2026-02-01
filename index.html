@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stok Barang Rafa (Sya'ban v2.6 Secret Session)</title>
+    <title>Stok Barang Rafa (Sya'ban v2.7 Transfer Update)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -283,19 +283,14 @@
         };
 
         // --- YOUTUBE PLAYER COMPONENT (GHOST MODE) ---
-        // Props: isUnlocked (dari parent), onVisibilityChange (jika perlu)
         const YouTubePlayer = ({ isUnlocked }) => {
             const [isOpen, setIsOpen] = useState(false);
             const [url, setUrl] = useState('');
             const [isPrivate, setIsPrivate] = useState(false); 
-            
-            // Video ID States
             const [remoteVideoId, setRemoteVideoId] = useState(null); 
             const [localVideoId, setLocalVideoId] = useState(null); 
-            
             const [isUpdating, setIsUpdating] = useState(false);
 
-            // Listener Realtime ke Firestore
             useEffect(() => {
                 const configDocRef = doc(db, 'app_config', 'music_player');
                 const unsubscribe = onSnapshot(configDocRef, (docSnapshot) => {
@@ -307,7 +302,6 @@
                 return () => unsubscribe();
             }, []);
 
-            // Determine which video to show based on mode
             const currentVideoId = isPrivate ? localVideoId : remoteVideoId;
 
             const extractId = (url) => {
@@ -320,105 +314,53 @@
                 e.preventDefault();
                 setIsUpdating(true);
                 const id = extractId(url);
-                
                 if (id) {
                     if (isPrivate) {
                         setLocalVideoId(id);
                         setUrl('');
                     } else {
                         try {
-                            await setDoc(doc(db, 'app_config', 'music_player'), {
-                                videoId: id,
-                                updatedAt: serverTimestamp(),
-                                status: 'playing'
-                            }, { merge: true });
+                            await setDoc(doc(db, 'app_config', 'music_player'), { videoId: id, updatedAt: serverTimestamp(), status: 'playing' }, { merge: true });
                             setUrl('');
-                        } catch (err) {
-                            alert("Gagal memutar video (Koneksi Database)");
-                        }
+                        } catch (err) { alert("Gagal memutar video (Koneksi Database)"); }
                     }
-                } else {
-                    alert('Link YouTube tidak valid');
-                }
+                } else { alert('Link YouTube tidak valid'); }
                 setIsUpdating(false);
             };
 
             const clearVideo = async () => {
-                if (isPrivate) {
-                    setLocalVideoId(null);
-                } else {
-                    try {
-                        await setDoc(doc(db, 'app_config', 'music_player'), {
-                            videoId: null,
-                            status: 'stopped'
-                        }, { merge: true });
-                    } catch (err) { console.error(err); }
+                if (isPrivate) setLocalVideoId(null);
+                else {
+                    try { await setDoc(doc(db, 'app_config', 'music_player'), { videoId: null, status: 'stopped' }, { merge: true }); } 
+                    catch (err) { console.error(err); }
                 }
             };
 
-            // LOGIC VISIBILITAS:
-            // 1. Jika isOpen (sedang buka panel) = Opacity 100.
-            // 2. Jika isUnlocked (sudah spam klik) = Opacity 100.
-            // 3. Jika BELUM unlocked (default) = Opacity 0 (Invisible) + pointer-events-none (tidak bisa diklik).
-            const visibilityClass = (isOpen || isUnlocked) 
-                ? "opacity-100 hover:opacity-100 pointer-events-auto" 
-                : "opacity-0 pointer-events-none";
+            const visibilityClass = (isOpen || isUnlocked) ? "opacity-100 hover:opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none";
 
             return (
                 <div className={`fixed bottom-24 left-4 z-[90] flex flex-col items-start gap-2 transition-all duration-700 ${visibilityClass}`}>
                     <div className={`transition-all duration-300 transform origin-bottom-left ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none absolute bottom-0 left-0'}`}>
                         <div className="bg-slate-900/95 backdrop-blur-md border border-gold-500/30 p-3 rounded-2xl shadow-2xl w-[280px]">
                             <div className="flex justify-between items-center mb-3">
-                                <h4 className="text-gold-400 text-xs font-bold flex items-center gap-2">
-                                    <Icon name="music" /> Music Player
-                                </h4>
-                                <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white transition-colors">
-                                    <Icon name="minus" />
-                                </button>
+                                <h4 className="text-gold-400 text-xs font-bold flex items-center gap-2"><Icon name="music" /> Music Player</h4>
+                                <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white transition-colors"><Icon name="minus" /></button>
                             </div>
-
                             <div className="flex bg-slate-800 rounded-lg p-1 mb-3 border border-slate-700">
                                 <button onClick={() => setIsPrivate(false)} className={`flex-1 py-1.5 px-2 text-[10px] font-bold rounded-md transition-all flex items-center justify-center gap-1.5 ${!isPrivate ? 'bg-gold-500 text-slate-900 shadow' : 'text-slate-400 hover:text-slate-200'}`}><Icon name="users" /> Bareng</button>
                                 <button onClick={() => setIsPrivate(true)} className={`flex-1 py-1.5 px-2 text-[10px] font-bold rounded-md transition-all flex items-center justify-center gap-1.5 ${isPrivate ? 'bg-blue-500 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}><Icon name="headphones" /> Sendiri</button>
                             </div>
-
-                            <div className="mb-2 text-[10px] flex items-center gap-2 px-1">
-                                <span className={`flex h-2 w-2 relative`}>
-                                    {currentVideoId && <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isPrivate ? 'bg-blue-400' : 'bg-red-400'}`}></span>}
-                                    <span className={`relative inline-flex rounded-full h-2 w-2 ${currentVideoId ? (isPrivate ? 'bg-blue-500' : 'bg-red-500') : 'bg-slate-600'}`}></span>
-                                </span>
-                                <span className="text-slate-300">{isPrivate ? "Mode Pribadi (Hanya Anda)" : "Mode Live (Semua User)"}</span>
-                            </div>
-
                             <div className={`rounded-lg overflow-hidden bg-black mb-3 relative aspect-video ${!currentVideoId ? 'hidden' : 'block'}`}>
-                                {currentVideoId && (
-                                    <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${currentVideoId}?autoplay=1&mute=0`} title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
-                                )}
+                                {currentVideoId && (<iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${currentVideoId}?autoplay=1&mute=0`} title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>)}
                             </div>
-
                             <form onSubmit={handlePlay} className="flex gap-2">
                                 <input type="text" className={`flex-1 bg-slate-800 border rounded-lg px-2 py-1.5 text-[10px] text-white focus:outline-none transition-colors placeholder:text-slate-500 ${isPrivate ? 'border-blue-500/30 focus:border-blue-500' : 'border-gold-500/30 focus:border-gold-500'}`} placeholder={isPrivate ? "Link YouTube (Private)..." : "Link YouTube (Public)..."} value={url} onChange={(e) => setUrl(e.target.value)} />
-                                {currentVideoId ? (
-                                    <button type="button" onClick={clearVideo} className="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white p-1.5 rounded-lg transition-colors border border-red-500/30"><Icon name="stop" /></button>
-                                ) : (
-                                    <button type="submit" disabled={isUpdating} className={`font-bold p-1.5 rounded-lg transition-colors disabled:opacity-50 ${isPrivate ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-gold-500 hover:bg-gold-400 text-slate-900'}`}>{isUpdating ? <Icon name="spinner" className="fa-spin" /> : <Icon name="play" />}</button>
-                                )}
+                                {currentVideoId ? (<button type="button" onClick={clearVideo} className="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white p-1.5 rounded-lg transition-colors border border-red-500/30"><Icon name="stop" /></button>) : (<button type="submit" disabled={isUpdating} className={`font-bold p-1.5 rounded-lg transition-colors disabled:opacity-50 ${isPrivate ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-gold-500 hover:bg-gold-400 text-slate-900'}`}>{isUpdating ? <Icon name="spinner" className="fa-spin" /> : <Icon name="play" />}</button>)}
                             </form>
                         </div>
                     </div>
-
                     <button onClick={() => setIsOpen(!isOpen)} className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 border border-white/10 ${isOpen ? 'bg-slate-800 text-gold-400' : 'bg-gold-500 text-slate-900'}`}>
-                        {currentVideoId && !isOpen ? (
-                            <div className="relative w-full h-full flex items-center justify-center">
-                                <Icon name="compact-disc" className="animate-spin-slow text-lg" />
-                                <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isPrivate ? 'bg-blue-400' : 'bg-red-400'}`}></span>
-                                  <span className={`relative inline-flex rounded-full h-3 w-3 ${isPrivate ? 'bg-blue-500' : 'bg-red-500'}`}></span>
-                                </span>
-                            </div>
-                        ) : (
-                            <Icon name="music" />
-                        )}
+                        {currentVideoId && !isOpen ? (<div className="relative w-full h-full flex items-center justify-center"><Icon name="compact-disc" className="animate-spin-slow text-lg" /><span className="absolute -top-1 -right-1 flex h-3 w-3"><span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isPrivate ? 'bg-blue-400' : 'bg-red-400'}`}></span><span className={`relative inline-flex rounded-full h-3 w-3 ${isPrivate ? 'bg-blue-500' : 'bg-red-500'}`}></span></span></div>) : (<Icon name="music" />)}
                     </button>
                 </div>
             );
@@ -428,7 +370,6 @@
             if (!show) return null;
             const bgClass = type === "error" ? "bg-red-500" : "bg-slate-800";
             const iconName = type === "error" ? "circle-xmark" : "circle-check";
-            
             return (
                 <div className={`fixed bottom-24 md:bottom-10 left-1/2 -translate-x-1/2 z-[110] ${bgClass} text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 fade-in animate-bounce border-2 border-white/10`}>
                     <Icon name={iconName} className={type === "error" ? "text-white" : "text-brand-400"} />
@@ -460,25 +401,17 @@
             );
         };
 
-        // --- STORE SWITCHER DENGAN LOGIC SECRET ---
         const StoreSwitcher = ({ currentStore, onSwitch, onUnlockSecret }) => {
             const [secretCounter, setSecretCounter] = useState(0);
 
             const handleSwitch = (e, store) => {
                 triggerFireworks(e.clientX, e.clientY);
                 onSwitch(store);
-                
-                // Logic Spam 10x Rafa 2
                 if (store === 'rafa2') {
                     const newCount = secretCounter + 1;
                     setSecretCounter(newCount);
-                    if (newCount === 10) {
-                        onUnlockSecret();
-                        setSecretCounter(0); // Reset
-                    }
-                } else {
-                    setSecretCounter(0); // Reset kalau klik tombol lain
-                }
+                    if (newCount === 10) { onUnlockSecret(); setSecretCounter(0); }
+                } else { setSecretCounter(0); }
             };
 
             return (
@@ -486,6 +419,236 @@
                     <button onClick={(e) => handleSwitch(e, 'rafa1')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] md:text-xs font-bold transition-all z-10 ${currentStore === 'rafa1' ? 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-100' : 'text-slate-400 hover:text-slate-600'}`}><Icon name="store" /> RAFA 1</button>
                     <button onClick={(e) => handleSwitch(e, 'rafa2')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] md:text-xs font-bold transition-all z-10 ${currentStore === 'rafa2' ? 'bg-white text-green-600 shadow-sm ring-1 ring-slate-100' : 'text-slate-400 hover:text-slate-600'}`}><Icon name="store" /> RAFA 2</button>
                     <button onClick={(e) => handleSwitch(e, 'all')} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] md:text-xs font-bold transition-all z-10 ${currentStore === 'all' ? 'bg-white text-purple-600 shadow-sm ring-1 ring-slate-100' : 'text-slate-400 hover:text-slate-600'}`}><Icon name="layer-group" /> SEMUA</button>
+                </div>
+            );
+        };
+
+        // --- TRANSFER VIEW COMPONENT (NEW) ---
+        const TransferView = ({ rafa1Data, rafa2Data, onTransferSuccess }) => {
+            const [direction, setDirection] = useState('rafa1_to_rafa2'); // or rafa2_to_rafa1
+            const [cart, setCart] = useState([]);
+            const [searchQuery, setSearchQuery] = useState('');
+            const [selectedItem, setSelectedItem] = useState(null);
+            const [transferQty, setTransferQty] = useState('');
+            const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+            const [isProcessing, setIsProcessing] = useState(false);
+            const dropdownRef = useRef(null);
+
+            // Filter data based on source
+            const sourceData = direction === 'rafa1_to_rafa2' ? rafa1Data : rafa2Data;
+            const sourceName = direction === 'rafa1_to_rafa2' ? "Rafa 1" : "Rafa 2";
+            const destName = direction === 'rafa1_to_rafa2' ? "Rafa 2" : "Rafa 1";
+            const themeColor = direction === 'rafa1_to_rafa2' ? "blue" : "green";
+
+            const filteredSourceItems = useMemo(() => {
+                if (!searchQuery) return [];
+                const fuse = new Fuse(sourceData, { keys: ['name'], threshold: 0.3 });
+                return fuse.search(searchQuery).map(({ item }) => item).slice(0, 10);
+            }, [searchQuery, sourceData]);
+
+            useEffect(() => {
+                const handleClickOutside = (event) => {
+                    if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsDropdownOpen(false);
+                };
+                document.addEventListener("mousedown", handleClickOutside);
+                return () => document.removeEventListener("mousedown", handleClickOutside);
+            }, []);
+
+            const addToCart = () => {
+                if (!selectedItem || !transferQty || parseFloat(transferQty) <= 0) return;
+                
+                const currentQty = safeNumber(selectedItem.qty);
+                const reqQty = parseFloat(transferQty);
+                
+                if (reqQty > currentQty) {
+                    alert(`Stok tidak cukup! Hanya tersedia ${currentQty}`);
+                    return;
+                }
+
+                setCart(prev => {
+                    const exists = prev.find(i => i.id === selectedItem.id);
+                    if (exists) {
+                        return prev.map(i => i.id === selectedItem.id ? { ...i, qty: i.qty + reqQty } : i);
+                    }
+                    return [...prev, { ...selectedItem, qty: reqQty }];
+                });
+
+                setSelectedItem(null);
+                setTransferQty('');
+                setSearchQuery('');
+            };
+
+            const removeFromCart = (id) => setCart(prev => prev.filter(i => i.id !== id));
+
+            const handleProcessTransfer = async () => {
+                if (cart.length === 0) return;
+                setIsProcessing(true);
+                
+                const batch = window.writeBatch(window.db);
+                const sourceColl = direction === 'rafa1_to_rafa2' ? 'stok_barang_rafa1' : 'stok_barang';
+                const destColl = direction === 'rafa1_to_rafa2' ? 'stok_barang' : 'stok_barang_rafa1';
+                const destDataList = direction === 'rafa1_to_rafa2' ? rafa2Data : rafa1Data;
+
+                try {
+                    cart.forEach(item => {
+                        // 1. Kurangi Source
+                        const sourceRef = window.doc(window.db, sourceColl, item.id);
+                        const newSourceQty = safeNumber(item.qty) - safeNumber(item.qty); // item.qty di cart adalah amount transfer. 
+                        // Wait, logic check: item object spread from source data has full qty, but cart item adds 'qty' property which overwrites.
+                        // Let's fix: cart item should store transferAmount separately or we use the original source Item.
+                        // Correction: In addToCart I spread selectedItem then overwrote qty. So item.qty IS the transfer amount.
+                        // But wait, to decrement I need the ORIGINAL qty. 
+                        // Better approach: Read realtime or trust local data? Trust local but safeguard.
+                        // However, simpler is: decrement by transfer amount. Firestore `increment(-val)` is best but we use manual math here.
+                        
+                        // Let's use the actual source item from sourceData to get current stock to be safe? 
+                        // Or just use update with numeric calculation. Firestore doesn't support 'qty = qty - x' without special FieldValue.increment.
+                        // I will use current sourceData logic for simplicity.
+                        const currentSourceItem = sourceData.find(d => d.id === item.id);
+                        if(currentSourceItem) {
+                             batch.update(sourceRef, { qty: safeNumber(currentSourceItem.qty) - item.qty });
+                        }
+
+                        // 2. Tambah Destination
+                        // Cek apakah nama barang sudah ada di destination
+                        const destItem = destDataList.find(d => d.name.toLowerCase().trim() === item.name.toLowerCase().trim());
+                        
+                        if (destItem) {
+                            const destRef = window.doc(window.db, destColl, destItem.id);
+                            batch.update(destRef, { qty: safeNumber(destItem.qty) + item.qty, updatedAt: window.serverTimestamp() });
+                        } else {
+                            const newDestRef = window.doc(window.collection(window.db, destColl));
+                            batch.set(newDestRef, {
+                                name: item.name,
+                                qty: item.qty,
+                                unit: item.unit,
+                                rack: '-', // Default rack for new transfer
+                                exp: item.exp || '',
+                                createdAt: window.serverTimestamp(),
+                                updatedAt: window.serverTimestamp()
+                            });
+                        }
+                    });
+
+                    await batch.commit();
+                    onTransferSuccess(`Berhasil transfer ${cart.length} item ke ${destName}`);
+                    setCart([]);
+                } catch (err) {
+                    console.error("Transfer Error", err);
+                    alert("Gagal memproses transfer. Cek koneksi.");
+                } finally {
+                    setIsProcessing(false);
+                }
+            };
+
+            const handleCopyWA = () => {
+                if (cart.length === 0) return;
+                const dateStr = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: '2-digit' });
+                let text = `*Barang untuk ${destName} :*\n`;
+                text += `🗓️ ${dateStr}\n------------------\n`;
+                cart.forEach((item, idx) => {
+                    text += `${idx + 1}. ${item.name} (${item.qty} ${item.unit})\n`;
+                });
+                text += `\nTotal: ${cart.length} Item`;
+
+                navigator.clipboard.writeText(text).then(() => {
+                    onTransferSuccess("Disalin ke WA!");
+                }).catch(() => {
+                    // Fallback
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    onTransferSuccess("Disalin ke WA!");
+                });
+            };
+
+            return (
+                <div className="fade-in max-w-2xl mx-auto w-full pt-4 md:pt-10 pb-24">
+                    <div className="bg-white/90 backdrop-blur-sm p-6 rounded-[30px] shadow-soft border border-white">
+                        <header className="mb-6 flex flex-col items-center justify-center">
+                            <div className="flex items-center gap-4 bg-slate-100 p-1 rounded-xl mb-4">
+                                <button onClick={() => { setDirection('rafa1_to_rafa2'); setCart([]); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${direction === 'rafa1_to_rafa2' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-800'}`}>Rafa 1 <Icon name="arrow-right" /> Rafa 2</button>
+                                <button onClick={() => { setDirection('rafa2_to_rafa1'); setCart([]); }} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${direction === 'rafa2_to_rafa1' ? 'bg-green-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-800'}`}>Rafa 2 <Icon name="arrow-right" /> Rafa 1</button>
+                            </div>
+                            <h2 className="text-xl font-bold text-slate-800">Transfer Barang</h2>
+                            <p className="text-xs text-slate-400">Pindahkan stok antar toko secara otomatis</p>
+                        </header>
+
+                        <div className={`bg-${themeColor}-50 border border-${themeColor}-100 p-4 rounded-2xl mb-6`}>
+                            <div className="flex flex-col md:flex-row gap-3">
+                                <div className="flex-1 relative" ref={dropdownRef}>
+                                    <label className={`text-[10px] font-bold text-${themeColor}-600 uppercase mb-1 block`}>Pilih Barang (Dari {sourceName})</label>
+                                    <input type="text" placeholder="Ketik nama barang..." className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 outline-none text-sm font-semibold" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setIsDropdownOpen(true); }} onFocus={() => setIsDropdownOpen(true)} />
+                                    {isDropdownOpen && searchQuery && (
+                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 max-h-48 overflow-y-auto z-50">
+                                            {filteredSourceItems.length === 0 ? (
+                                                <div className="p-3 text-xs text-slate-400 text-center">Tidak ditemukan</div>
+                                            ) : (
+                                                filteredSourceItems.map(item => (
+                                                    <button key={item.id} onClick={() => { setSelectedItem(item); setSearchQuery(item.name); setIsDropdownOpen(false); }} className="w-full text-left p-3 hover:bg-slate-50 text-xs font-medium border-b border-slate-50 last:border-0 flex justify-between">
+                                                        <span>{item.name}</span>
+                                                        <span className="font-bold text-slate-500">Stok: {item.qty}</span>
+                                                    </button>
+                                                ))
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="w-full md:w-32">
+                                    <label className={`text-[10px] font-bold text-${themeColor}-600 uppercase mb-1 block`}>Jumlah Transfer</label>
+                                    <input type="number" placeholder="0" className="w-full p-3 rounded-xl border border-slate-200 focus:ring-2 outline-none text-sm font-bold" value={transferQty} onChange={(e) => setTransferQty(e.target.value)} />
+                                </div>
+                                <div className="flex items-end">
+                                    <button onClick={addToCart} disabled={!selectedItem || !transferQty} className={`w-full md:w-auto h-[46px] px-6 rounded-xl font-bold text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:scale-100 bg-${themeColor}-600 hover:bg-${themeColor}-700`}><Icon name="plus" /> Tambah</button>
+                                </div>
+                            </div>
+                            {selectedItem && <div className="mt-2 text-[10px] text-slate-500 font-medium bg-white/50 p-2 rounded-lg inline-block">Terpilih: <span className="font-bold text-slate-800">{selectedItem.name}</span> (Sisa Stok: {safeNumber(selectedItem.qty)})</div>}
+                        </div>
+
+                        {cart.length > 0 && (
+                            <div className="space-y-4">
+                                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-slate-50 border-b border-slate-200">
+                                            <tr>
+                                                <th className="p-3 text-[10px] font-bold text-slate-500 uppercase">Nama Barang</th>
+                                                <th className="p-3 text-[10px] font-bold text-slate-500 uppercase text-center">Jml</th>
+                                                <th className="p-3 text-[10px] font-bold text-slate-500 uppercase text-right">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {cart.map((item, idx) => (
+                                                <tr key={idx} className="group hover:bg-slate-50/50">
+                                                    <td className="p-3 text-xs font-bold text-slate-700">{item.name} <span className="text-[10px] font-normal text-slate-400 block">{item.unit}</span></td>
+                                                    <td className="p-3 text-xs font-bold text-center text-slate-800">{item.qty}</td>
+                                                    <td className="p-3 text-right">
+                                                        <button onClick={() => removeFromCart(item.id)} className="text-slate-400 hover:text-red-500 transition-colors"><Icon name="trash-can" /></button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="flex gap-3 pt-2">
+                                    <button onClick={handleCopyWA} className="flex-1 py-3.5 rounded-xl border-2 border-[#25D366] text-[#25D366] font-bold text-sm hover:bg-[#25D366] hover:text-white transition-all flex items-center justify-center gap-2"><Icon name="whatsapp" type="brands" /> Salin WA</button>
+                                    <button onClick={handleProcessTransfer} disabled={isProcessing} className={`flex-[2] py-3.5 rounded-xl text-white font-bold text-sm shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 ${isProcessing ? 'bg-slate-400' : `bg-slate-800 hover:bg-slate-900`}`}>
+                                        {isProcessing ? <Icon name="spinner" className="fa-spin" /> : <Icon name="paper-plane" />} {isProcessing ? 'Memproses...' : 'Proses Transfer Stok'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {cart.length === 0 && (
+                            <div className="text-center py-10 opacity-40">
+                                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3"><Icon name="cart-flatbed" className="text-2xl text-slate-400" /></div>
+                                <p className="text-sm font-medium text-slate-500">Belum ada barang yang ditransfer</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             );
         };
@@ -868,10 +1031,8 @@
                                         const isMerged = item.isMerged === true;
                                         const isRafa1 = item.store === 'rafa1';
                                         const isNew = isMerged ? item.sources.some(s => isNewItem(s.createdAt)) : isNewItem(item.createdAt);
-                                        
-                                        // Staggered Animation & Typing Effect Key
                                         const animDelay = `${index * 50}ms`;
-                                        const nameClass = searchQuery ? "type-effect-wrapper" : ""; // Efek ketik hanya saat search
+                                        const nameClass = searchQuery ? "type-effect-wrapper" : "";
 
                                         if (currentStore === 'all') {
                                             if (isMerged) {
@@ -1090,11 +1251,9 @@
                 setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
             }, []);
 
-            // --- FUNGSI UNLOCK MUSIC PLAYER (SESSION ONLY) ---
             const unlockMusicPlayer = () => {
                 if (!isMusicPlayerUnlocked) {
                     setIsMusicPlayerUnlocked(true);
-                    // Tidak ada localStorage.setItem, jadi akan reset saat refresh
                     showToast("🎵 Secret Music Player Unlocked! (Sesi Ini Saja) 🎵");
                 } else {
                     showToast("🎵 Music Player Sudah Terbuka! 🎵");
@@ -1248,11 +1407,8 @@
 
             return (
                 <div className={`min-h-screen flex flex-col md:flex-row ${bgTheme} transition-colors duration-500`}>
-                    <SyabanDecor /> {/* Sya'ban Decoration Overlay */}
-                    
-                    {/* ALWAYS RENDER, but control opacity inside component */}
+                    <SyabanDecor /> 
                     <YouTubePlayer isUnlocked={isMusicPlayerUnlocked} />
-                    
                     <Toast show={toast.show} message={toast.message} type={toast.type} />
                     <aside className="hidden md:flex flex-col w-80 bg-white/90 backdrop-blur-md border-r border-white/20 h-screen fixed left-0 top-0 z-30 shadow-soft">
                         <div className="p-6 pb-4">
@@ -1262,7 +1418,7 @@
                             </div>
                             <StoreSwitcher currentStore={currentStore} onSwitch={switchStore} onUnlockSecret={unlockMusicPlayer} />
                             <nav className="space-y-1.5">
-                                {[{ id: 'home', label: 'Dashboard', icon: 'chart-pie' }, { id: 'list', label: 'Stok Barang', icon: 'boxes-stacked' }, { id: 'add', label: 'Input Manual', icon: 'pen-to-square' }, { id: 'import', label: 'Import Masal', icon: 'file-import' }].map(menu => (
+                                {[{ id: 'home', label: 'Dashboard', icon: 'chart-pie' }, { id: 'list', label: 'Stok Barang', icon: 'boxes-stacked' }, { id: 'transfer', label: 'Transfer Stok', icon: 'truck-arrow-right' }, { id: 'add', label: 'Input Manual', icon: 'pen-to-square' }, { id: 'import', label: 'Import Masal', icon: 'file-import' }].map(menu => (
                                     <button key={menu.id} onClick={(e) => handleNavClick(menu.id, e)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-300 relative overflow-hidden group ${activeTab === menu.id ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}><Icon name={menu.icon} className={`w-5 text-base ${activeTab === menu.id ? 'text-white' : 'text-slate-400'}`} /> {menu.label}</button>
                                 ))}
                             </nav>
@@ -1275,11 +1431,12 @@
                         </div>
                         {activeTab === 'home' && (<DashboardView items={visibleItems} onShowLowStock={() => { setActiveTab('list'); setShowOnlyLowStock(true); }} currentStore={currentStore} />)}
                         {activeTab === 'list' && (<ListView items={visibleItems} loading={loading} searchQuery={searchQuery} setSearchQuery={setSearchQuery} showOnlyLowStock={showOnlyLowStock} setShowOnlyLowStock={setShowOnlyLowStock} selectedRack={selectedRack} setSelectedRack={setSelectedRack} uniqueRacksData={uniqueRacksData} onCopySuccess={showToast} onEdit={(item) => { setFormData({...item}); setEditingItem(item); setActiveTab('add'); }} onDelete={(item) => setDeleteModal({ show: true, item: item })} onQuickAdd={handleQuickAdd} onDeleteRack={(rackName) => setDeleteRackModal({ show: true, rackName })} currentStore={currentStore} />)}
+                        {activeTab === 'transfer' && (<TransferView rafa1Data={rafa1Data} rafa2Data={rafa2Data} onTransferSuccess={(msg) => showToast(msg)} />)}
                         {activeTab === 'add' && (<FormView formData={formData} setFormData={setFormData} onSubmit={handleSubmit} isEditing={!!editingItem} submitting={submitting} onCancel={() => { setEditingItem(null); setFormData({name:'', qty:'', unit:'Pcs', exp:'', rack:'', targetStores: ['rafa1']}); setActiveTab('list'); }} currentStore={currentStore} />)}
                         {activeTab === 'import' && (<BulkImportView currentStore={currentStore} onImportComplete={(count, store) => { showToast(`${count} Barang berhasil diimport ke ${store}`); setActiveTab('list'); }} />)}
                     </main>
                     <nav className="md:hidden fixed bottom-4 left-4 right-4 bg-slate-900/90 backdrop-blur-xl border border-white/10 px-6 py-3 z-40 flex justify-between items-center shadow-2xl rounded-2xl">
-                        {[{ id: 'home', icon: 'house', label: 'Home' }, { id: 'list', icon: 'boxes-stacked', label: 'Stok' }, { id: 'add', icon: 'plus', label: 'Input' }, { id: 'import', icon: 'file-import', label: 'Import' }].map(menu => (
+                        {[{ id: 'home', icon: 'house', label: 'Home' }, { id: 'list', icon: 'boxes-stacked', label: 'Stok' }, { id: 'transfer', icon: 'truck-arrow-right', label: 'Trf' }, { id: 'add', icon: 'plus', label: 'Input' }, { id: 'import', icon: 'file-import', label: 'Import' }].map(menu => (
                             <button key={menu.id} onClick={(e) => handleNavClick(menu.id, e)} className={`flex flex-col items-center gap-0.5 transition-all w-full ${activeTab === menu.id ? 'text-white' : 'text-slate-500'}`}><Icon name={menu.icon} className={`text-lg ${activeTab === menu.id ? '-translate-y-0.5' : ''} transition-transform`} /></button>
                         ))}
                     </nav>
