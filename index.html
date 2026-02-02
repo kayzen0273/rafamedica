@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stok Barang Rafa (Sya'ban v2.8 Multi-Rack)</title>
+    <title>Stok Barang Rafa (Sya'ban v3.0 Music Fix)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -291,9 +291,9 @@
             return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: '2-digit' });
         };
 
-        // --- YOUTUBE PLAYER COMPONENT (GHOST MODE) ---
-        const YouTubePlayer = ({ isUnlocked }) => {
-            const [isOpen, setIsOpen] = useState(false);
+        // --- YOUTUBE PLAYER COMPONENT (TOGGLE VIA LOGO) ---
+        // Props: isOpen, onClose (controlled by App)
+        const YouTubePlayer = ({ isOpen, onClose }) => {
             const [url, setUrl] = useState('');
             const [isPrivate, setIsPrivate] = useState(false); 
             const [remoteVideoId, setRemoteVideoId] = useState(null); 
@@ -344,33 +344,26 @@
                     catch (err) { console.error(err); }
                 }
             };
-
-            const visibilityClass = (isOpen || isUnlocked) ? "opacity-100 hover:opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none";
-
+            
             return (
-                <div className={`fixed bottom-24 left-4 z-[90] flex flex-col items-start gap-2 transition-all duration-700 ${visibilityClass}`}>
-                    <div className={`transition-all duration-300 transform origin-bottom-left ${isOpen ? 'scale-100 opacity-100' : 'scale-0 opacity-0 pointer-events-none absolute bottom-0 left-0'}`}>
-                        <div className="bg-slate-900/95 backdrop-blur-md border border-gold-500/30 p-3 rounded-2xl shadow-2xl w-[280px]">
-                            <div className="flex justify-between items-center mb-3">
-                                <h4 className="text-gold-400 text-xs font-bold flex items-center gap-2"><Icon name="music" /> Music Player</h4>
-                                <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white transition-colors"><Icon name="minus" /></button>
-                            </div>
-                            <div className="flex bg-slate-800 rounded-lg p-1 mb-3 border border-slate-700">
-                                <button onClick={() => setIsPrivate(false)} className={`flex-1 py-1.5 px-2 text-[10px] font-bold rounded-md transition-all flex items-center justify-center gap-1.5 ${!isPrivate ? 'bg-gold-500 text-slate-900 shadow' : 'text-slate-400 hover:text-slate-200'}`}><Icon name="users" /> Bareng</button>
-                                <button onClick={() => setIsPrivate(true)} className={`flex-1 py-1.5 px-2 text-[10px] font-bold rounded-md transition-all flex items-center justify-center gap-1.5 ${isPrivate ? 'bg-blue-500 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}><Icon name="headphones" /> Sendiri</button>
-                            </div>
-                            <div className={`rounded-lg overflow-hidden bg-black mb-3 relative aspect-video ${!currentVideoId ? 'hidden' : 'block'}`}>
-                                {currentVideoId && (<iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${currentVideoId}?autoplay=1&mute=0`} title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>)}
-                            </div>
-                            <form onSubmit={handlePlay} className="flex gap-2">
-                                <input type="text" className={`flex-1 bg-slate-800 border rounded-lg px-2 py-1.5 text-[10px] text-white focus:outline-none transition-colors placeholder:text-slate-500 ${isPrivate ? 'border-blue-500/30 focus:border-blue-500' : 'border-gold-500/30 focus:border-gold-500'}`} placeholder={isPrivate ? "Link YouTube (Private)..." : "Link YouTube (Public)..."} value={url} onChange={(e) => setUrl(e.target.value)} />
-                                {currentVideoId ? (<button type="button" onClick={clearVideo} className="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white p-1.5 rounded-lg transition-colors border border-red-500/30"><Icon name="stop" /></button>) : (<button type="submit" disabled={isUpdating} className={`font-bold p-1.5 rounded-lg transition-colors disabled:opacity-50 ${isPrivate ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-gold-500 hover:bg-gold-400 text-slate-900'}`}>{isUpdating ? <Icon name="spinner" className="fa-spin" /> : <Icon name="play" />}</button>)}
-                            </form>
+                <div className={`fixed bottom-24 left-4 z-[90] flex flex-col items-start gap-2 transition-all duration-300 transform origin-bottom-left ${isOpen ? 'scale-100 opacity-100 pointer-events-auto' : 'scale-0 opacity-0 pointer-events-none'}`}>
+                    <div className="bg-slate-900/95 backdrop-blur-md border border-gold-500/30 p-3 rounded-2xl shadow-2xl w-[280px]">
+                        <div className="flex justify-between items-center mb-3">
+                            <h4 className="text-gold-400 text-xs font-bold flex items-center gap-2"><Icon name="music" /> Music Player</h4>
+                            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors"><Icon name="xmark" /></button>
                         </div>
+                        <div className="flex bg-slate-800 rounded-lg p-1 mb-3 border border-slate-700">
+                            <button onClick={() => setIsPrivate(false)} className={`flex-1 py-1.5 px-2 text-[10px] font-bold rounded-md transition-all flex items-center justify-center gap-1.5 ${!isPrivate ? 'bg-gold-500 text-slate-900 shadow' : 'text-slate-400 hover:text-slate-200'}`}><Icon name="users" /> Bareng</button>
+                            <button onClick={() => setIsPrivate(true)} className={`flex-1 py-1.5 px-2 text-[10px] font-bold rounded-md transition-all flex items-center justify-center gap-1.5 ${isPrivate ? 'bg-blue-500 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}><Icon name="headphones" /> Sendiri</button>
+                        </div>
+                        <div className={`rounded-lg overflow-hidden bg-black mb-3 relative aspect-video ${!currentVideoId ? 'hidden' : 'block'}`}>
+                            {currentVideoId && (<iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${currentVideoId}?autoplay=1&mute=0`} title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>)}
+                        </div>
+                        <form onSubmit={handlePlay} className="flex gap-2">
+                            <input type="text" className={`flex-1 bg-slate-800 border rounded-lg px-2 py-1.5 text-[10px] text-white focus:outline-none transition-colors placeholder:text-slate-500 ${isPrivate ? 'border-blue-500/30 focus:border-blue-500' : 'border-gold-500/30 focus:border-gold-500'}`} placeholder={isPrivate ? "Link YouTube (Private)..." : "Link YouTube (Public)..."} value={url} onChange={(e) => setUrl(e.target.value)} />
+                            {currentVideoId ? (<button type="button" onClick={clearVideo} className="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white p-1.5 rounded-lg transition-colors border border-red-500/30"><Icon name="stop" /></button>) : (<button type="submit" disabled={isUpdating} className={`font-bold p-1.5 rounded-lg transition-colors disabled:opacity-50 ${isPrivate ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-gold-500 hover:bg-gold-400 text-slate-900'}`}>{isUpdating ? <Icon name="spinner" className="fa-spin" /> : <Icon name="play" />}</button>)}
+                        </form>
                     </div>
-                    <button onClick={() => setIsOpen(!isOpen)} className={`w-10 h-10 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 border border-white/10 ${isOpen ? 'bg-slate-800 text-gold-400' : 'bg-gold-500 text-slate-900'}`}>
-                        {currentVideoId && !isOpen ? (<div className="relative w-full h-full flex items-center justify-center"><Icon name="compact-disc" className="animate-spin-slow text-lg" /><span className="absolute -top-1 -right-1 flex h-3 w-3"><span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isPrivate ? 'bg-blue-400' : 'bg-red-400'}`}></span><span className={`relative inline-flex rounded-full h-3 w-3 ${isPrivate ? 'bg-blue-500' : 'bg-red-500'}`}></span></span></div>) : (<Icon name="music" />)}
-                    </button>
                 </div>
             );
         };
@@ -410,17 +403,10 @@
             );
         };
 
-        const StoreSwitcher = ({ currentStore, onSwitch, onUnlockSecret }) => {
-            const [secretCounter, setSecretCounter] = useState(0);
-
+        const StoreSwitcher = ({ currentStore, onSwitch }) => {
             const handleSwitch = (e, store) => {
                 triggerFireworks(e.clientX, e.clientY);
                 onSwitch(store);
-                if (store === 'rafa2') {
-                    const newCount = secretCounter + 1;
-                    setSecretCounter(newCount);
-                    if (newCount === 10) { onUnlockSecret(); setSecretCounter(0); }
-                } else { setSecretCounter(0); }
             };
 
             return (
@@ -727,11 +713,9 @@
                 }
                 return result.filter(i => {
                     const matchesLowStock = showOnlyLowStock ? safeNumber(i.qty) < 5 : true;
-                    // --- MULTI RACK FILTER LOGIC ---
                     let matchesRack = true;
                     if (selectedRacks.length > 0) {
                         const itemRackUpper = (i.rack || '-').toUpperCase();
-                        // Cek apakah item memiliki salah satu dari rak yang dipilih
                         matchesRack = selectedRacks.some(selected => itemRackUpper.includes(selected));
                     }
                     return matchesLowStock && matchesRack;
@@ -801,7 +785,6 @@
                 return 'focus:ring-purple-500';
             };
 
-            // Dropdown Logic
             const toggleRack = (rackName) => {
                 setSelectedRacks(prev => {
                     if (prev.includes(rackName)) return prev.filter(r => r !== rackName);
@@ -829,7 +812,6 @@
                             <button onClick={handleCopyToWA} className="py-2 px-3 rounded-lg font-bold text-[10px] flex items-center gap-2 transition-all bg-[#25D366] hover:bg-[#128C7E] text-white shadow-md active:scale-95"><Icon name="whatsapp" type="brands" className="text-sm" /> Salin WA</button>
                             <button onClick={() => setShowOnlyLowStock(!showOnlyLowStock)} className={`py-2 px-3 rounded-lg font-bold text-[10px] flex items-center gap-2 transition-all border min-w-[90px] ${showOnlyLowStock ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}><Icon name="filter" /> {showOnlyLowStock ? 'Reset Low' : 'Filter Low'}</button>
 
-                            {/* MULTI SELECT RACK DROPDOWN */}
                             <div className="relative min-w-[140px] md:min-w-[160px]" ref={dropdownRef}>
                                 <button onClick={() => setIsRackDropdownOpen(!isRackDropdownOpen)} className={`w-full py-2.5 px-3 rounded-lg border border-slate-200 bg-white text-[10px] font-bold text-slate-700 shadow-sm flex items-center justify-between transition-all ${isRackDropdownOpen ? getFocusRing() + ' ring-1' : ''}`}>
                                     <span className="truncate max-w-[100px]">{getRackLabel()}</span>
@@ -1045,7 +1027,6 @@
             const [activeTab, setActiveTab] = useState('home'); 
             const [searchQuery, setSearchQuery] = useState('');
             const [showOnlyLowStock, setShowOnlyLowStock] = useState(false);
-            // UPDATE: SelectedRacks jadi array
             const [selectedRacks, setSelectedRacks] = useState([]);
             const [formData, setFormData] = useState({ name: '', qty: '', unit: 'Pcs', exp: '', rack: '', targetStores: ['rafa1'] });
             const [editingItem, setEditingItem] = useState(null); 
@@ -1053,7 +1034,9 @@
             const [deleteRackModal, setDeleteRackModal] = useState({ show: false, rackName: null });
             const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
             const [submitting, setSubmitting] = useState(false);
-            const [isMusicPlayerUnlocked, setIsMusicPlayerUnlocked] = useState(false);
+            
+            // STATE MUSIC PLAYER (Open/Close)
+            const [showMusicPlayer, setShowMusicPlayer] = useState(false);
 
             useEffect(() => {
                 setLoading(true);
@@ -1110,15 +1093,6 @@
                 setToast({ show: true, message, type });
                 setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
             }, []);
-
-            const unlockMusicPlayer = () => {
-                if (!isMusicPlayerUnlocked) {
-                    setIsMusicPlayerUnlocked(true);
-                    showToast("🎵 Secret Music Player Unlocked! (Sesi Ini Saja) 🎵");
-                } else {
-                    showToast("🎵 Music Player Sudah Terbuka! 🎵");
-                }
-            };
 
             const switchStore = (storeId) => {
                 if(storeId === currentStore) return;
@@ -1217,15 +1191,26 @@
             return (
                 <div className={`min-h-screen flex flex-col md:flex-row ${bgTheme} transition-colors duration-500`}>
                     <SyabanDecor /> 
-                    <YouTubePlayer isUnlocked={isMusicPlayerUnlocked} />
+                    <YouTubePlayer isOpen={showMusicPlayer} onClose={() => setShowMusicPlayer(false)} />
                     <Toast show={toast.show} message={toast.message} type={toast.type} />
+                    
                     <aside className="hidden md:flex flex-col w-80 bg-white/90 backdrop-blur-md border-r border-white/20 h-screen fixed left-0 top-0 z-30 shadow-soft">
                         <div className="p-6 pb-4">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg transition-all duration-500 ${currentStore === 'rafa1' ? 'bg-blue-600' : (currentStore === 'rafa2' ? 'bg-green-600' : 'bg-purple-600')}`}><Icon name="staff-snake" className="text-lg" /></div>
-                                <div><h1 className="font-black text-lg text-slate-800 leading-none tracking-tight">Rafa Medika</h1><p className="text-[9px] font-bold uppercase tracking-widest mt-1 text-slate-400">Inventory App</p></div>
+                            {/* LOGO AREA - ICON BOX ONLY CLICKABLE */}
+                            <div className="flex items-center gap-3 mb-6 select-none group">
+                                <div 
+                                    onClick={() => setShowMusicPlayer(!showMusicPlayer)}
+                                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg transition-all duration-500 cursor-pointer hover:scale-105 active:scale-95 ${currentStore === 'rafa1' ? 'bg-blue-600' : (currentStore === 'rafa2' ? 'bg-green-600' : 'bg-purple-600')}`}
+                                    title="Klik untuk Buka/Tutup Musik"
+                                >
+                                    <Icon name="staff-snake" className="text-lg" />
+                                </div>
+                                <div>
+                                    <h1 className="font-black text-lg text-slate-800 leading-none tracking-tight">Rafa Medika</h1>
+                                    <p className="text-[9px] font-bold uppercase tracking-widest mt-1 text-slate-400">Inventory App</p>
+                                </div>
                             </div>
-                            <StoreSwitcher currentStore={currentStore} onSwitch={switchStore} onUnlockSecret={unlockMusicPlayer} />
+                            <StoreSwitcher currentStore={currentStore} onSwitch={switchStore} />
                             <nav className="space-y-1.5">
                                 {[{ id: 'home', label: 'Dashboard', icon: 'chart-pie' }, { id: 'list', label: 'Stok Barang', icon: 'boxes-stacked' }, { id: 'transfer', label: 'Transfer Stok', icon: 'truck-arrow-right' }, { id: 'add', label: 'Input Manual', icon: 'pen-to-square' }, { id: 'import', label: 'Import Masal', icon: 'file-import' }].map(menu => (
                                     <button key={menu.id} onClick={(e) => handleNavClick(menu.id, e)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-300 relative overflow-hidden group ${activeTab === menu.id ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}><Icon name={menu.icon} className={`w-5 text-base ${activeTab === menu.id ? 'text-white' : 'text-slate-400'}`} /> {menu.label}</button>
@@ -1235,8 +1220,17 @@
                     </aside>
                     <main className="flex-1 md:ml-80 p-4 md:p-8 max-w-7xl mx-auto w-full mb-20 md:mb-0 relative z-20">
                         <div className="md:hidden mb-6 flex flex-col gap-4">
-                            <div className="flex items-center gap-2 relative z-10"><div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white ${currentStore === 'rafa1' ? 'bg-blue-600' : (currentStore === 'rafa2' ? 'bg-green-600' : 'bg-purple-600')}`}><Icon name="staff-snake" /></div><h1 className="font-bold text-slate-800">Rafa Medika</h1></div>
-                            <StoreSwitcher currentStore={currentStore} onSwitch={switchStore} onUnlockSecret={unlockMusicPlayer} />
+                            {/* MOBILE LOGO CLICKABLE - ICON ONLY */}
+                            <div className="flex items-center gap-2 relative z-10">
+                                <div 
+                                    onClick={() => setShowMusicPlayer(!showMusicPlayer)}
+                                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-white cursor-pointer active:scale-95 transition-transform ${currentStore === 'rafa1' ? 'bg-blue-600' : (currentStore === 'rafa2' ? 'bg-green-600' : 'bg-purple-600')}`}
+                                >
+                                    <Icon name="staff-snake" />
+                                </div>
+                                <h1 className="font-bold text-slate-800">Rafa Medika</h1>
+                            </div>
+                            <StoreSwitcher currentStore={currentStore} onSwitch={switchStore} />
                         </div>
                         {activeTab === 'home' && (<DashboardView items={visibleItems} onShowLowStock={() => { setActiveTab('list'); setShowOnlyLowStock(true); }} currentStore={currentStore} />)}
                         {activeTab === 'list' && (<ListView items={visibleItems} loading={loading} searchQuery={searchQuery} setSearchQuery={setSearchQuery} showOnlyLowStock={showOnlyLowStock} setShowOnlyLowStock={setShowOnlyLowStock} selectedRacks={selectedRacks} setSelectedRacks={setSelectedRacks} uniqueRacksData={uniqueRacksData} onCopySuccess={showToast} onEdit={(item) => { setFormData({...item}); setEditingItem(item); setActiveTab('add'); }} onDelete={(item) => setDeleteModal({ show: true, item: item })} onQuickAdd={handleQuickAdd} onDeleteRack={(rackName) => setDeleteRackModal({ show: true, rackName })} currentStore={currentStore} />)}
